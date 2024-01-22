@@ -1,0 +1,110 @@
+import android.app.Service;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.os.Build;
+import android.os.Bundle;
+import android.os.IBinder;
+import android.telephony.TelephonyManager;
+import android.util.Log;
+import android.widget.TextView;
+
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AppCompatActivity;
+
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
+
+public class CallBlockingService extends Service {
+    private boolean isServiceRunning = false;
+
+    @Override
+    public IBinder onBind(Intent intent) {
+        return null;
+    }
+
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        if (intent != null && intent.getAction() != null) {
+            if (intent.getAction().equals("START_SERVICE")) {
+                // Start the service
+                isServiceRunning = true;
+                // Implement call-blocking logic or any other initialization here
+            } else if (intent.getAction().equals("STOP_SERVICE")) {
+                // Stop the service
+                isServiceRunning = false;
+                stopSelf();
+            }
+        }
+
+        return START_STICKY;
+    }
+
+    public boolean isServiceRunning() {
+        return isServiceRunning;
+    }
+}
+
+public class CallReceiver extends BroadcastReceiver {
+    @Override
+    public void onReceive(Context context, Intent intent) {
+        String state = intent.getStringExtra(TelephonyManager.EXTRA_STATE);
+        String phoneNumber = intent.getStringExtra(TelephonyManager.EXTRA_INCOMING_NUMBER);
+
+        if (state != null && state.equals(TelephonyManager.EXTRA_STATE_RINGING)) {
+            // Check if the number should be blocked (e.g., not in contacts)
+            if (!isNumberInContacts(context, phoneNumber)) {
+                logUnsavedCall(context, phoneNumber);
+                blockCall(context);
+            }
+        }
+    }
+
+    private boolean isNumberInContacts(Context context, String phoneNumber) {
+        // Implement logic to check if the number is in contacts
+        // You may use the ContactsContract API for this purpose
+        return false;
+    }
+
+    private void logUnsavedCall(Context context, String phoneNumber) {
+        // Log the unsaved call details with timestamp
+        String timestamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date());
+        String logMessage = "Unsaved Call - Number: " + phoneNumber + " | Time: " + timestamp;
+        Log.d("CallBlockingApp", logMessage);
+
+        // Store the log in a persistent manner (e.g., SharedPreferences, database)
+        // You may want to create a data model and manage this information more efficiently
+        saveLog(context, logMessage);
+    }
+
+    private void saveLog(Context context, String logMessage) {
+        // Implement logic to store the log message in SharedPreferences, database, etc.
+        // You may want to create a dedicated class for managing logs
+    }
+
+    private void blockCall(Context context) {
+        // Implement logic to block the call
+        // This might involve ending the call or redirecting to voicemail
+    }
+}
+
+public class LogActivity extends AppCompatActivity {
+    @Override
+    protected void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_log);
+
+        TextView logTextView = findViewById(R.id.logTextView);
+
+        // Retrieve and display the log from the persistent storage
+        String log = retrieveLog();
+        logTextView.setText(log);
+    }
+
+    private String retrieveLog() {
+        // Implement logic to retrieve the log from SharedPreferences, database, etc.
+        // You may want to create a dedicated class for managing logs
+        return "Log not available";  // Placeholder, replace with actual implementation
+    }
+}
